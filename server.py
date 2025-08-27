@@ -12,11 +12,14 @@ app = Flask(__name__)
 def index():
     return 'Server running', 200
 
-@app.route('/webhook', methods=['POST'])
+@app.route('/webhook', methods=['GET', 'POST'])
 def webhook():
-    data = request.get_json()
-    print(data)  # Здесь будут данные от webhook
-    return 'success', 200
+    if request.method == 'POST':
+        data = request.get_json()
+        print(data)  # Здесь будут данные от webhook
+        return 'success', 200
+    elif request.method == 'GET':
+        return 'GET success', 200
 
 @app.route('/favicon.ico')
 def favicon():
@@ -55,7 +58,6 @@ def get_scope_id():
     date = time.strftime('%a, %d %b %Y %H:%M:%S %Z', time.gmtime())
     method = 'POST'
     content_type = 'application/json'
-
     str_to_sign = f"{method.upper()}\n{content_md5}\n{content_type}\n{date}\n{path}"
     signature = hmac.new(secret.encode(), str_to_sign.encode(), hashlib.sha1).hexdigest()
     headers = {
@@ -64,7 +66,6 @@ def get_scope_id():
         'Date': date,
         'X-Signature': signature
     }
-
     response = requests.post(url, data=request_body, headers=headers)
     if response.status_code == 200:
         data = response.json()
