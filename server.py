@@ -111,4 +111,4 @@ if __name__ == '__main__':
             print('Неизвестный режим. Доступно: --test, --get-amojo, --get-scope')
             sys.exit(1)
     else:
-        app.run(host='0.0.0.0', port=80)  # Запуск сервера по умолчанию
+        app.run(host='0.0.0.0', port=5000)  # Запуск сервера по умолчанию
