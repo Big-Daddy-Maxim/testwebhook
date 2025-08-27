@@ -15,11 +15,7 @@ def index():
 @app.route('/webhook', methods=['POST'])
 def webhook():
     data = request.get_json()
-    print(data)  # Здесь будет scope_id после настройки
-    # Пример разбора scope_id:
-    # if 'scope_id' in data:
-    #     parts = data['scope_id'].split('_')
-    #     channel_id, amojo_id = parts[0], parts[1]
+    print(data)  # Здесь будут данные от webhook
     return 'success', 200
 
 @app.route('/favicon.ico')
@@ -28,7 +24,7 @@ def favicon():
 
 def get_amojo_id():
     """Шаг 1: Получаем amojo_id аккаунта через API AmoCRM."""
-    access_token = 'ВАШ_ACCESS_TOKEN'  # Замените на реальный access_token
+    access_token = 'ВАШ_ACCESS_TOKEN'  # Замените на реальный
     base_url = 'https://ВАШ_ПОДДОМЕН.amocrm.ru'  # Замените на ваш поддомен
     headers = {'Authorization': f'Bearer {access_token}'}
     response = requests.get(f'{base_url}/api/v4/account?with=amojo_id', headers=headers)
@@ -81,7 +77,7 @@ def get_scope_id():
 
 def test_webhook():
     """Тестовый POST-запрос на ваш webhook."""
-    webhook_url = 'http://83.166.235.207/webhook'
+    webhook_url = 'http://83.166.235.207:5000/webhook'  # Добавлен порт 5000 для теста
     data = {
         'name': 'MyWebhook',
         'Channel URL': 'test url'
@@ -111,4 +107,4 @@ if __name__ == '__main__':
             print('Неизвестный режим. Доступно: --test, --get-amojo, --get-scope')
             sys.exit(1)
     else:
-        app.run(host='0.0.0.0', port=5000)  # Запуск сервера по умолчанию
+        app.run(host='0.0.0.0', port=5000, debug=True)  # Запуск сервера с отладкой
