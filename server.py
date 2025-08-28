@@ -11,30 +11,29 @@ AMOJO_ID    = 'eyJ0eXAiOiJKV1QiLCJhbGciOiJSUzI1NiIsImp0aSI6IjI3NjQ0NDVjNzczODhkY
 
 app = Flask(__name__)
 
-# Печатаем подсказки сразу после запуска
-print(f'Пункт 2 → scope_id формируется так: {CHANNEL_ID}_{AMOJO_ID}')
-print('Пункт 8 → если канал не привязан, запустите:  python3 server.py --bind\n')
+print(f'Пункт 2 → scope_id = {CHANNEL_ID}_{AMOJO_ID}')
+print('Пункт 8 → привязка: sudo python3 server.py --bind\n')
 
 # ---------- МАРШРУТЫ ---------- #
 @app.route('/', methods=['GET'])
 def index():
     return 'Server running', 200
 
-# ГЛАВНОЕ ИЗМЕНЕНИЕ: <path:scope_id> ловит всё после /webhook/
+# для AmoCRM → /webhook/<scope_id>
 @app.route('/webhook/<path:scope_id>', methods=['GET', 'POST'])
+# для ручного теста → /webhook  (scope_id = "")
+@app.route('/webhook', defaults={'scope_id': ''}, methods=['GET', 'POST'])
 def webhook(scope_id):
     if request.method == 'POST':
-        data = request.get_json()
-        print(f'\n==> POST от AmoCRM (scope_id = {scope_id})')
+        data = request.get_json(silent=True)
+        print(f'\n==> POST (scope_id = {scope_id})')
         print(json.dumps(data, ensure_ascii=False, indent=2))
 
-        # Разбираем scope_id на канал и аккаунт
         if '_' in scope_id:
-            channel_id, amojo_id = scope_id.split('_', 1)
-            print(f'Пункт 2 → Канал: {channel_id} | Аккаунт: {amojo_id}')
+            ch_id, amo_id = scope_id.split('_', 1)
+            print(f'Пункт 2 → Канал: {ch_id} | Аккаунт: {amo_id}')
         return 'success', 200
 
-    # GET-проверка
     return f'GET success (scope_id = {scope_id})', 200
 
 
@@ -43,35 +42,36 @@ def favicon():
     return '', 204
 
 # ---------- ПРИВЯЗКА КАНАЛА (пункт 8) ---------- #
-def bind_channel_and_get_scope():
-    """Привязываем канал и получаем scope_id."""
+def bind_channel():
     path = f'/v2/origin/custom/{CHANNEL_ID}/connect'
     url  = f'https://amojo.amocrm.ru{path}'
 
-    body      = {'account_id': AMOJO_ID, 'title': 'MyWebhook', 'hook_api_version': 'v2'}
+    body      = {'account_id': AMOJO_ID,
+                 'title': 'MyWebhook',
+                 'hook_api_version': 'v2'}
     body_str  = json.dumps(body)
     md5       = hashlib.md5(body_str.encode()).hexdigest()
     date      = time.strftime('%a, %d %b %Y %H:%M:%S %Z', time.gmtime())
-    str2sign  = f"POST\n{md5}\napplication/json\n{date}\n{path}"
-    signature = hmac.new(SECRET.encode(), str2sign.encode(), hashlib.sha1).hexdigest()
+    to_sign   = f"POST\n{md5}\napplication/json\n{date}\n{path}"
+    sig       = hmac.new(SECRET.encode(), to_sign.encode(),
+                         hashlib.sha1).hexdigest()
 
-    headers = {'Content-Type': 'application/json',
-               'Content-MD5':  md5,
-               'Date':         date,
-               'X-Signature':  signature}
-
-    r = requests.post(url, data=body_str, headers=headers)
+    r = requests.post(
+            url, data=body_str,
+            headers={'Content-Type': 'application/json',
+                     'Content-MD5': md5,
+                     'Date': date,
+                     'X-Signature': sig})
     if r.status_code == 200:
         scope_id = r.json().get('scope_id')
         print(f'Пункт 8 → Канал привязан! scope_id = {scope_id}')
-        return scope_id
+    else:
+        print('Ошибка привязки канала:', r.status_code, r.text)
 
-    print('Ошибка привязки канала:', r.status_code, r.text)
-    return None
 
 # ---------- ЗАПУСК ---------- #
 if __name__ == '__main__':
     if len(sys.argv) > 1 and sys.argv[1] == '--bind':
-        bind_channel_and_get_scope()
+        bind_channel()
     else:
         app.run(host='0.0.0.0', port=80, debug=True)
