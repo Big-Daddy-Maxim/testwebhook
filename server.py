@@ -34,7 +34,7 @@ def webhook(scope_id):
             print(f'Пункт 2 → Канал: {ch_id} | Аккаунт: {amo_id}')
         return 'success', 200
 
-    return f'GET success (scope_id = {scope_id})', 200
+    return f'GET success (scope_id = {CHANNEL_ID}_{AMOJO_ID})', 200
 
 
 @app.route('/favicon.ico')
