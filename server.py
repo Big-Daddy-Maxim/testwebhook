@@ -14,6 +14,9 @@ AMOJO_ID = 'd4216b47-0698-4c13-9b37-ead5cf5ff44c'  # id из allowed_acc_list
 TELEGRAM_BOT_TOKEN = '8040130333:AAFG5W13u0E0mWlpAkjIkvOD3W1WnceDMBc'  # Токен TG-бота
 CONVERSATIONS_FILE = 'conversations_map.json'  # Файл mapping (conv_id -> tg_chat_id)
 
+# Хардкод реального scope_id (замените, если ваш другой)
+ACTUAL_SCOPE_ID = '69d64ccd-90e0-4566-bc0c-507d47f44b12_d4216b47-0698-4c13-9b37-ead5cf5ff44c'
+
 app = Flask(__name__)
 
 # Загрузка mapping
@@ -40,25 +43,30 @@ def verify_signature(secret, body, received_sig, date, path, method='POST', cont
 def index():
     return 'Server running', 200
 
+# Новый маршрут для обхода: ловит буквальный '/webhook/:scope_id'
+@app.route('/webhook/:scope_id', methods=['GET', 'POST'])
+# Существующие маршруты (для совместимости)
 @app.route('/webhook/', methods=['GET', 'POST'])
 @app.route('/webhook', defaults={'scope_id': ''}, methods=['GET', 'POST'])
-def webhook(scope_id):
+def webhook(scope_id=None):  # scope_id не используется, т.к. хардкодим
     if request.method == 'POST':
         data = request.get_json(silent=True)
-        print(f'\n==> POST (scope_id = {scope_id})')  # Диагностика: полный payload
+        print(f'\n==> POST (received path with scope_id = {request.path})')  # Диагностика: полный путь
         print(json.dumps(data, ensure_ascii=False, indent=2))
         print('HEADERS:', dict(request.headers))  # Диагностика: заголовки
 
-        # Проверка подписи
+        # Для проверки подписи используем путь, который amoCRM ожидает (/webhook/:scope_id)
         received_sig = request.headers.get('X-Signature')
         date = request.headers.get('Date')
-        path = f'/webhook/{scope_id}' if scope_id else '/webhook'
+        path = '/webhook/:scope_id'  # Обход: фиксируем путь как в настройках amoCRM
         if not verify_signature(SECRET, data, received_sig, date, path):
             print('Invalid signature!')
             return 'Invalid signature', 403
 
-        if '_' in scope_id:
-            ch_id, amo_id = scope_id.split('_', 1)
+        # Используем хардкодный ACTUAL_SCOPE_ID для внутренней логики
+        actual_scope = ACTUAL_SCOPE_ID
+        if '_' in actual_scope:
+            ch_id, amo_id = actual_scope.split('_', 1)
             print(f'Пункт 2 → Канал: {ch_id} | Аккаунт: {amo_id}')
 
         # Логика отправки в Telegram (если new_message)
@@ -89,7 +97,8 @@ def webhook(scope_id):
                     print(f'Нет chat_id для conv_id: {conversation_id}')
         return 'success', 200
 
-    return f'GET success (scope_id = {CHANNEL_ID}_{AMOJO_ID})', 200
+    # Для GET возвращаем success с хардкодным scope_id
+    return f'GET success (scope_id = {ACTUAL_SCOPE_ID})', 200
 
 @app.route('/favicon.ico')
 def favicon():
