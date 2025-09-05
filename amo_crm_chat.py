@@ -1,5 +1,4 @@
 from __future__ import annotations
-
 import json
 import hashlib
 import hmac
@@ -13,7 +12,7 @@ channel_secret = 'c4f35fc977d2fd1437bc72e1e50791bd3afbcc9f'
 scope_id = '69d64ccd-90e0-4566-bc0c-507d47f44b12_d4216b47-0698-4c13-9b37-ead5cf5ff44c'
 base_url = 'https://amojo.amocrm.ru'
 
-USER_FILE = 'user_conversations.json'
+USER_FILE = 'user_conversations.json'  # {tg_user_id: conv_id}
 
 user_conversations = {}
 

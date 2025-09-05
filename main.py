@@ -7,8 +7,7 @@ from amo_crm_chat import (
     user_conversations,
 )
 
-FILE = "conversation_map.json"
-
+FILE = "user_conversations.json"  # Исправлено на user_conversations.json для {user_id: conv_id}
 
 def load_map() -> dict:
     """Загружает ранее сохранённый словарь из FILE."""
@@ -21,16 +20,13 @@ def load_map() -> dict:
             return {}
     return {}
 
-
 def save_map() -> None:
     """Сохраняет актуальный user_conversations в FILE."""
     with open(FILE, "w", encoding="utf-8") as f:
         json.dump(user_conversations, f, ensure_ascii=False, indent=4)
 
-
 # Загружаем существующие связи TG ID → conversation_id
 user_conversations.update(load_map())
-
 
 async def test_main():
     """Тестовое создание чата и отправка сообщения без Telegram-бота."""
@@ -42,16 +38,13 @@ async def test_main():
         )
         if conv_id:
             print(f"Chat created: {conv_id}")
-
     # отправляем тестовое сообщение в amoCRM
     success = await send_message_to_amocrm(
         user_conversations.get(uid), uid, "тест"
     )
     print("Send message:", "Success" if success else "Failed")
-
     # сохраняем обновлённый словарь в файл
     save_map()
-
 
 if __name__ == "__main__":
     asyncio.run(test_main())
