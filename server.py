@@ -1,10 +1,5 @@
 from flask import Flask, request
-import requests
-import json
-import sys
-import hashlib
-import hmac
-import time
+import requests, json, sys, hashlib, hmac, time
 import os
 
 # ---------- ДАННЫЕ ИЗ ВАШЕГО JSON ---------- #
@@ -69,6 +64,10 @@ def webhook(scope_id):
             message_text = payload.get('message', {}).get('text')
             sender = payload.get('sender', {})
 
+            # --- ОТЛАДКА: Печать conversation_id и ключей mapping ---
+            print(f'conversation_id из webhook: {conversation_id}')
+            print(f'Ключи в conversations_map.json: {list(conversations_map.keys())}')
+
             # Проверяем, что сообщение от менеджера (не от клиента)
             if sender.get('id') != payload.get('user_id'):  # Предполагаем, что sender.id менеджера отличается
                 if conversation_id and message_text:
@@ -122,5 +121,4 @@ if __name__ == '__main__':
     if len(sys.argv) > 1 and sys.argv[1] == '--bind':
         bind_channel()
     else:
-        app.run(host='0.0.0.0', port=5000, debug=True)
-
+        app.run(host='0.0.0.0', port=80, debug=True)
