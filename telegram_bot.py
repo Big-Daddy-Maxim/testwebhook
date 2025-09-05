@@ -38,7 +38,7 @@ async def start_handler(message: types.Message):
     conv_id = await create_chat_from_telegram(user_id, user.full_name or 'User', user.username, 'default@example.com')
     if conv_id:
         await message.reply('Чат создан. Теперь вы можете общаться с amoCRM.')
-        conversations_map[conv_id] = user_id  # Сохраняем conv_id -> user_id
+        conversations_map[conv_id] = user_id
         save_conversations(conversations_map)
     else:
         await message.reply('Ошибка создания чата.')
@@ -54,7 +54,7 @@ async def message_handler(message: types.Message):
         if not conv_id:
             await message.reply('Ошибка создания чата. Попробуйте /start.')
             return
-        conversations_map[conv_id] = user_id  # Сохраняем mapping здесь тоже
+        conversations_map[conv_id] = user_id
         save_conversations(conversations_map)
 
     conv_id = user_conversations[user_id]
