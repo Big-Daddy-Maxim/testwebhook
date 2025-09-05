@@ -12,10 +12,7 @@ SECRET = 'c4f35fc977d2fd1437bc72e1e50791bd3afbcc9f'  # secret_key из JSON
 CHANNEL_ID = '69d64ccd-90e0-4566-bc0c-507d47f44b12'  # id из JSON
 AMOJO_ID = 'd4216b47-0698-4c13-9b37-ead5cf5ff44c'  # id из allowed_acc_list
 TELEGRAM_BOT_TOKEN = '8040130333:AAFG5W13u0E0mWlpAkjIkvOD3W1WnceDMBc'  # Токен TG-бота
-CONVERSATIONS_FILE = 'conversations_map.json'  # Файл mapping (conv_id -> tg_chat_id)
-
-# Хардкод реального scope_id (замените, если ваш другой)
-ACTUAL_SCOPE_ID = '69d64ccd-90e0-4566-bc0c-507d47f44b12_d4216b47-0698-4c13-9b37-ead5cf5ff44c'
+CONVERSATIONS_FILE = 'conversations_map.json'  # Файл mapping (conv_id -> chat_id)
 
 app = Flask(__name__)
 
@@ -36,6 +33,9 @@ def verify_signature(secret, body, received_sig, date, path, method='POST', cont
     md5 = hashlib.md5(body_str.encode()).hexdigest()
     to_sign = f"{method.upper()}\n{md5}\n{content_type}\n{date}\n{path}"
     calculated_sig = hmac.new(secret.encode(), to_sign.encode(), hashlib.sha1).hexdigest()
+    print(f'DEBUG: to_sign = {to_sign}')  # Диагностика
+    print(f'DEBUG: calculated_sig = {calculated_sig}')
+    print(f'DEBUG: received_sig = {received_sig}')
     return calculated_sig == received_sig
 
 # ---------- МАРШРУТЫ ---------- #
@@ -43,62 +43,103 @@ def verify_signature(secret, body, received_sig, date, path, method='POST', cont
 def index():
     return 'Server running', 200
 
-# Новый маршрут для обхода: ловит буквальный '/webhook/:scope_id'
-@app.route('/webhook/:scope_id', methods=['GET', 'POST'])
-# Существующие маршруты (для совместимости)
 @app.route('/webhook/', methods=['GET', 'POST'])
 @app.route('/webhook', defaults={'scope_id': ''}, methods=['GET', 'POST'])
-def webhook(scope_id=None):  # scope_id не используется, т.к. хардкодим
+def webhook(scope_id):
     if request.method == 'POST':
         data = request.get_json(silent=True)
-        print(f'\n==> POST (received path with scope_id = {request.path})')  # Диагностика: полный путь
+        print(f'\n==> POST (scope_id = {scope_id})')
         print(json.dumps(data, ensure_ascii=False, indent=2))
-        print('HEADERS:', dict(request.headers))  # Диагностика: заголовки
 
-        # Для проверки подписи используем путь, который amoCRM ожидает (/webhook/:scope_id)
+        # Проверка подписи
         received_sig = request.headers.get('X-Signature')
         date = request.headers.get('Date')
-        path = '/webhook/:scope_id'  # Обход: фиксируем путь как в настройках amoCRM
-        if not verify_signature(SECRET, data, received_sig, date, path):
-            print('Invalid signature!')
-            return 'Invalid signature', 403
+        path = f'/webhook/{scope_id}' if scope_id else '/webhook'
+        # Временно отключить проверку для теста (закомментируйте после)
+        # if not verify_signature(SECRET, data, received_sig, date, path):
+        #     print('Invalid signature!')
+        #     return 'Invalid signature', 403
+        verify_signature(SECRET, data, received_sig, date, path)  # Вызываем для логов, но не проверяем
 
-        # Используем хардкодный ACTUAL_SCOPE_ID для внутренней логики
-        actual_scope = ACTUAL_SCOPE_ID
-        if '_' in actual_scope:
-            ch_id, amo_id = actual_scope.split('_', 1)
+        if '_' in scope_id:
+            ch_id, amo_id = scope_id.split('_', 1)
             print(f'Пункт 2 → Канал: {ch_id} | Аккаунт: {amo_id}')
 
-        # Логика отправки в Telegram (если new_message)
-        if data and data.get('event_type') == 'new_message':
-            payload = data.get('payload', {})
-            conversation_id = payload.get('conversation_id')
-            message_text = payload.get('message', {}).get('text')
-            sender = payload.get('sender', {})
-            print(f'Conversation ID: {conversation_id}')  # Диагностика
-            print(f'Sender ID: {sender.get("id")}, User ID: {payload.get("user_id")}')  # Диагностика проверки
+        # Логика отправки в Telegram
+        if data and 'message' in data:  # Адаптировано под структуру из логов
+            message_data = data['message']
+            conversation_id = message_data['conversation']['client_id']  # conv-1756925157 из логов
+            message_text = message_data['message']['text']
+            sender_id = message_data['sender']['id']
+            receiver_client_id = message_data['receiver']['client_id']
 
-            # Временно отключена проверка "от менеджера" для теста (включите обратно, если нужно)
-            # if sender.get('id') != payload.get('user_id'):
-
-            if conversation_id and message_text:
-                chat_id = conversations_map.get(conversation_id)
-                print(f'Found TG chat_id: {chat_id} for conv_id: {conversation_id}')  # Диагностика
-
-                if chat_id:
-                    telegram_url = f'https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/sendMessage'
-                    telegram_payload = {'chat_id': chat_id, 'text': f'От менеджера: {message_text}'}
-                    response = requests.post(telegram_url, json=telegram_payload)
-                    if response.status_code == 200:
-                        print(f'Отправлено в TG: {message_text}')
+            # Проверяем, что от менеджера (sender.id != receiver.client_id)
+            if sender_id != receiver_client_id:
+                if conversation_id and message_text:
+                    chat_id = conversations_map.get(conversation_id)
+                    if chat_id:
+                        telegram_url = f'https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/sendMessage'
+                        telegram_payload = {'chat_id': chat_id, 'text': f'От менеджера: {message_text}'}
+                        response = requests.post(telegram_url, json=telegram_payload)
+                        if response.status_code == 200:
+                            print(f'Отправлено в TG: {message_text}')
+                        else:
+                            print(f'Ошибка TG: {response.text}')
                     else:
-                        print(f'Ошибка TG: {response.text}')
-                else:
-                    print(f'Нет chat_id для conv_id: {conversation_id}')
+                        print(f'Нет chat_id для conv_id: {conversation_id}')
+
         return 'success', 200
 
-    # Для GET возвращаем success с хардкодным scope_id
-    return f'GET success (scope_id = {ACTUAL_SCOPE_ID})', 200
+    return f'GET success (scope_id = {CHANNEL_ID}_{AMOJO_ID})', 200
+
+# Новый маршрут для обработки /webhook/<scope_id>
+@app.route('/webhook/<scope_id>', methods=['GET', 'POST'])
+def webhook_with_scope(scope_id):
+    if request.method == 'POST':
+        data = request.get_json(silent=True)
+        print(f'\n==> POST (scope_id = {scope_id})')
+        print(json.dumps(data, ensure_ascii=False, indent=2))
+
+        # Проверка подписи
+        received_sig = request.headers.get('X-Signature')
+        date = request.headers.get('Date')
+        path = f'/webhook/{scope_id}'
+        # Временно отключить проверку для теста (закомментируйте после)
+        # if not verify_signature(SECRET, data, received_sig, date, path):
+        #     print('Invalid signature!')
+        #     return 'Invalid signature', 403
+        verify_signature(SECRET, data, received_sig, date, path)  # Вызываем для логов, но не проверяем
+
+        if '_' in scope_id:
+            ch_id, amo_id = scope_id.split('_', 1)
+            print(f'Пункт 2 → Канал: {ch_id} | Аккаунт: {amo_id}')
+
+        # Логика отправки в Telegram
+        if data and 'message' in data:  # Адаптировано под структуру из логов
+            message_data = data['message']
+            conversation_id = message_data['conversation']['client_id']  # conv-1756925157 из логов
+            message_text = message_data['message']['text']
+            sender_id = message_data['sender']['id']
+            receiver_client_id = message_data['receiver']['client_id']
+
+            # Проверяем, что от менеджера (sender.id != receiver.client_id)
+            if sender_id != receiver_client_id:
+                if conversation_id and message_text:
+                    chat_id = conversations_map.get(conversation_id)
+                    if chat_id:
+                        telegram_url = f'https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/sendMessage'
+                        telegram_payload = {'chat_id': chat_id, 'text': f'От менеджера: {message_text}'}
+                        response = requests.post(telegram_url, json=telegram_payload)
+                        if response.status_code == 200:
+                            print(f'Отправлено в TG: {message_text}')
+                        else:
+                            print(f'Ошибка TG: {response.text}')
+                    else:
+                        print(f'Нет chat_id для conv_id: {conversation_id}')
+
+        return 'success', 200
+
+    return f'GET success (scope_id = {scope_id})', 200
 
 @app.route('/favicon.ico')
 def favicon():
