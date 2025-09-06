@@ -8,18 +8,14 @@ import time
 import os
 from dotenv import load_dotenv
 
-load_dotenv()  # Загружаем .env
+load_dotenv()
 
 # Конфигурация из .env
 SECRET = os.environ.get('CHANNEL_SECRET')
 CHANNEL_ID = os.environ.get('CHANNEL_ID')
 AMOJO_ID = os.environ.get('AMOJO_ID')
 TELEGRAM_BOT_TOKEN = os.environ.get('TELEGRAM_BOT_TOKEN')
-
-if not SECRET or not CHANNEL_ID or not AMOJO_ID or not TELEGRAM_BOT_TOKEN:
-    raise ValueError("Необходимые ключи не найдены в .env")
-
-CONVERSATIONS_FILE = 'conversations_map.json'  # Файл mapping (conv_id -> chat_id)
+CONVERSATIONS_FILE = 'conversations_map.json'
 
 app = Flask(__name__)
 
@@ -42,6 +38,9 @@ conversations_map = load_conversations()
 
 # Проверка подписи webhook (для безопасности)
 def verify_signature(secret, body, received_sig, date, path, method='POST', content_type='application/json'):
+    if received_sig is None:
+        print("Ошибка: Отсутствует заголовок X-Signature")
+        return False
     body_str = json.dumps(body, sort_keys=True)  # Сортировка ключей для consistency
     md5 = hashlib.md5(body_str.encode('utf-8')).hexdigest().lower()
     if date is None:
@@ -55,11 +54,19 @@ def verify_signature(secret, body, received_sig, date, path, method='POST', cont
 def index():
     return 'Server running', 200
 
-@app.route('/webhook/', methods=['GET', 'POST'])
+# Объединённый маршрут: обрабатывает /webhook (scope_id='') и /webhook/<scope_id>
 @app.route('/webhook', defaults={'scope_id': ''}, methods=['GET', 'POST'])
+@app.route('/webhook/<scope_id>', methods=['GET', 'POST'])
 def webhook(scope_id):
     if request.method == 'POST':
-        data = request.get_json(silent=True)
+        try:
+            data = request.get_json(silent=True)
+            if data is None:
+                raise ValueError("Invalid JSON")
+        except Exception as e:
+            print(f"Ошибка парсинга JSON: {e} от {request.remote_addr}")
+            return 'Invalid request', 400
+
         sender_id = data.get('message', {}).get('sender', {}).get('id', 'unknown')
         receiver_id = data.get('message', {}).get('receiver', {}).get('id', 'unknown')
         message_text = data.get('message', {}).get('message', {}).get('text', 'no text')
@@ -101,63 +108,14 @@ def webhook(scope_id):
 
         return 'success', 200
 
-    print(f'GET success (scope_id = {CHANNEL_ID}_{AMOJO_ID}) from IP: {request.remote_addr}')  # Сделано похожим по размеру на POST
-    return f'GET success (scope_id = {CHANNEL_ID}_{AMOJO_ID})', 200
-
-# Новый маршрут для обработки /webhook/<scope_id>
-@app.route('/webhook/<scope_id>', methods=['GET', 'POST'])
-def webhook_with_scope(scope_id):
-    if request.method == 'POST':
-        data = request.get_json(silent=True)
-        sender_id = data.get('message', {}).get('sender', {}).get('id', 'unknown')
-        receiver_id = data.get('message', {}).get('receiver', {}).get('id', 'unknown')
-        message_text = data.get('message', {}).get('message', {}).get('text', 'no text')
-        print(f'POST (scope_id = {scope_id}) from: {sender_id} to: {receiver_id} text: "{message_text}"')
-
-        # Проверка подписи
-        received_sig = request.headers.get('X-Signature')
-        date = request.headers.get('Date')
-        path = f'/webhook/{scope_id}'
-        content_type = request.headers.get('Content-Type', 'application/json')
-        sig_valid = verify_signature(SECRET, data, received_sig, date, path, content_type=content_type)
-
-        if '_' in scope_id:
-            ch_id, amo_id = scope_id.split('_', 1)
-            print(f'Канал: {ch_id} | Аккаунт: {amo_id}')
-
-        # Логика отправки в Telegram
-        if data and 'message' in data:
-            message_data = data['message']
-            conversation_id = message_data['conversation']['client_id']
-            message_text = message_data['message']['text']
-            sender_id = message_data['sender']['id']
-            receiver_client_id = message_data['receiver']['client_id']
-
-            # Проверяем, что сообщение от менеджера
-            if sender_id != receiver_client_id:
-                if conversation_id and message_text:
-                    chat_id = conversations_map.get(conversation_id)
-                    if chat_id:
-                        telegram_url = f'https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/sendMessage'
-                        telegram_payload = {'chat_id': chat_id, 'text': f'От менеджера: {message_text}'}
-                        response = requests.post(telegram_url, json=telegram_payload)
-                        if response.status_code == 200:
-                            print(f'Отправлено в TG: {message_text}')
-                        else:
-                            print(f'Ошибка TG: {response.text} - Status: {response.status_code}')
-                    else:
-                        print(f'Нет chat_id для conv_id: {conversation_id}')
-
-        return 'success', 200
-
-    print(f'GET success (scope_id = {scope_id}) from IP: {request.remote_addr}')  # Сделано похожим по размеру на POST
-    return f'GET success (scope_id = {scope_id})', 200
+    print(f'GET success (scope_id = {scope_id or CHANNEL_ID + "_" + AMOJO_ID}) from IP: {request.remote_addr}')
+    return f'GET success (scope_id = {scope_id or CHANNEL_ID + "_" + AMOJO_ID})', 200
 
 @app.route('/favicon.ico')
 def favicon():
     return '', 204
 
-# ---------- ПРИВЯЗКА КАНАЛА (пункт 8) ---------- #
+# ---------- ПРИВЯЗКА КАНАЛА ---------- #
 def bind_channel():
     path = f'/v2/origin/custom/{CHANNEL_ID}/connect'
     url = f'https://amojo.amocrm.ru{path}'
@@ -186,4 +144,4 @@ if __name__ == '__main__':
     if len(sys.argv) > 1 and sys.argv[1] == '--bind':
         bind_channel()
     else:
-        app.run(host='0.0.0.0', port=80, debug=True)
+        app.run(host='0.0.0.0', port=80, debug=False)
