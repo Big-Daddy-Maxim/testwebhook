@@ -1,6 +1,7 @@
 import asyncio
 import json
 import os
+from dotenv import load_dotenv
 from amo_crm_chat import (
     create_chat_from_telegram,
     send_message_to_amocrm,
@@ -30,7 +31,7 @@ user_conversations.update(load_map())
 
 async def test_main():
     """Тестовое создание чата и отправка сообщения без Telegram-бота."""
-    uid = "conv-526436"  
+    uid = "conv-111111"  
     if uid not in user_conversations:
         conv_id = await create_chat_from_telegram(
             uid, "Test", "testuser", "test@mail"

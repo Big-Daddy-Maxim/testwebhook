@@ -6,13 +6,14 @@ import hashlib
 import hmac
 import time
 import os
+from dotenv import load_dotenv
 
 # ---------- ДАННЫЕ ИЗ ВАШЕГО JSON ---------- #
-SECRET = 'c4f35fc977d2fd1437bc72e1e50791bd3afbcc9f'  # secret_key из JSON
-CHANNEL_ID = '69d64ccd-90e0-4566-bc0c-507d47f44b12'  # id из JSON
-AMOJO_ID = 'd4216b47-0698-4c13-9b37-ead5cf5ff44c'  # id из allowed_acc_list
-TELEGRAM_BOT_TOKEN = '8040130333:AAFG5W13u0E0mWlpAkjIkvOD3W1WnceDMBc'  # Токен TG-бота
-CONVERSATIONS_FILE = 'conversations_map.json'  # Файл mapping (conv_id -> chat_id)
+SECRET = os.environ.get('CHANNEL_SECRET')
+CHANNEL_ID = os.environ.get('CHANNEL_ID')
+AMOJO_ID = os.environ.get('AMOJO_ID')
+TELEGRAM_BOT_TOKEN = os.environ.get('TELEGRAM_BOT_TOKEN')
+CONVERSATIONS_FILE = 'conversations_map.json'
 
 app = Flask(__name__)
 

@@ -6,11 +6,12 @@ import requests
 from datetime import datetime
 import time
 import os
+from dotenv import load_dotenv
 
 # Конфигурация (замените на реальные)
-channel_secret = 'c4f35fc977d2fd1437bc72e1e50791bd3afbcc9f'
-scope_id = '69d64ccd-90e0-4566-bc0c-507d47f44b12_d4216b47-0698-4c13-9b37-ead5cf5ff44c'
-base_url = 'https://amojo.amocrm.ru'
+channel_secret = os.environ.get('CHANNEL_SECRET')
+scope_id = os.environ.get('SCOPE_ID')
+base_url = os.environ.get('BASE_URL', 'https://amojo.amocrm.ru')
 
 USER_FILE = 'user_conversations.json'  # {tg_user_id: conv_id}
 

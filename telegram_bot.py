@@ -5,8 +5,14 @@ from aiogram.fsm.storage.memory import MemoryStorage
 from amo_crm_chat import user_conversations, create_chat_from_telegram, send_message_to_amocrm
 import json
 import os
+from dotenv import load_dotenv
 
-TELEGRAM_BOT_TOKEN = '8040130333:AAFG5W13u0E0mWlpAkjIkvOD3W1WnceDMBc'
+load_dotenv() 
+
+TELEGRAM_BOT_TOKEN = os.environ.get('TELEGRAM_BOT_TOKEN')
+if not TELEGRAM_BOT_TOKEN:
+    raise ValueError("TELEGRAM_BOT_TOKEN не найден в .env! Создайте файл с переменными.")
+
 bot = Bot(token=TELEGRAM_BOT_TOKEN)
 storage = MemoryStorage()
 dp = Dispatcher(storage=storage)
