@@ -8,12 +8,18 @@ import time
 import os
 from dotenv import load_dotenv
 
-# ---------- ДАННЫЕ ИЗ ВАШЕГО JSON ---------- #
+load_dotenv()  # Загружаем .env
+
+# Конфигурация из .env
 SECRET = os.environ.get('CHANNEL_SECRET')
 CHANNEL_ID = os.environ.get('CHANNEL_ID')
 AMOJO_ID = os.environ.get('AMOJO_ID')
 TELEGRAM_BOT_TOKEN = os.environ.get('TELEGRAM_BOT_TOKEN')
-CONVERSATIONS_FILE = 'conversations_map.json'
+
+if not SECRET or not CHANNEL_ID or not AMOJO_ID or not TELEGRAM_BOT_TOKEN:
+    raise ValueError("Необходимые ключи не найдены в .env")
+
+CONVERSATIONS_FILE = 'conversations_map.json'  # Файл mapping (conv_id -> chat_id)
 
 app = Flask(__name__)
 

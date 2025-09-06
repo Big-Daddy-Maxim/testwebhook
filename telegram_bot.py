@@ -7,7 +7,7 @@ import json
 import os
 from dotenv import load_dotenv
 
-load_dotenv() 
+load_dotenv()  # Загружаем .env
 
 TELEGRAM_BOT_TOKEN = os.environ.get('TELEGRAM_BOT_TOKEN')
 if not TELEGRAM_BOT_TOKEN:

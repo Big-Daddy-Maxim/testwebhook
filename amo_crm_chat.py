@@ -8,13 +8,17 @@ import time
 import os
 from dotenv import load_dotenv
 
-# Конфигурация (замените на реальные)
+load_dotenv()  # Загружаем .env
+
+# Конфигурация из .env
 channel_secret = os.environ.get('CHANNEL_SECRET')
 scope_id = os.environ.get('SCOPE_ID')
 base_url = os.environ.get('BASE_URL', 'https://amojo.amocrm.ru')
 
-USER_FILE = 'user_conversations.json'  # {tg_user_id: conv_id}
+if not channel_secret or not scope_id:
+    raise ValueError("CHANNEL_SECRET или SCOPE_ID не найдены в .env")
 
+USER_FILE = 'user_conversations.json'  # {tg_user_id: conv_id}
 user_conversations = {}
 
 def load_users() -> dict:

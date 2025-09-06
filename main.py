@@ -8,7 +8,9 @@ from amo_crm_chat import (
     user_conversations,
 )
 
-FILE = "user_conversations.json"  
+load_dotenv()  # Загружаем .env для ключей в amo_crm_chat.py
+
+FILE = "user_conversations.json"
 
 def load_map() -> dict:
     """Загружает ранее сохранённый словарь из FILE."""
@@ -31,7 +33,7 @@ user_conversations.update(load_map())
 
 async def test_main():
     """Тестовое создание чата и отправка сообщения без Telegram-бота."""
-    uid = "conv-111111"  
+    uid = "conv-526436"
     if uid not in user_conversations:
         conv_id = await create_chat_from_telegram(
             uid, "Test", "testuser", "test@mail"
