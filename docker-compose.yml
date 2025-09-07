@@ -1,8 +1,7 @@
 services:
   amo_server:
-    build:
-      context: ./server  # Папка с server/Dockerfile
-      dockerfile: Dockerfile
+    build: ./server/
+    container_name: amo_server
     ports:
       - "80:80"
     environment:  # Переменные из .env или вручную
@@ -13,17 +12,12 @@ services:
       - CHANNEL_ID=${CHANNEL_ID}
       - AMOJO_ID=${AMOJO_ID}
       - TELEGRAM_BOT_TOKEN=${TELEGRAM_BOT_TOKEN}
-    volumes:  # Для хранения данных (json-файлов)
-      - ./server/data:/app/data
+
 
   telegram_bot:
-    build:
-      context: ./TG_bot  # Папка с tg/Dockerfile
-      dockerfile: Dockerfile
+    build: ./TG_bot/
+    container_name: telegram_bot
     depends_on:
       - amo_server  # Бот зависит от сервера
     environment:
       - TELEGRAM_BOT_TOKEN=${TELEGRAM_BOT_TOKEN}
-    command: ["python3", "telegram_bot.py"]
-    volumes:  # Для хранения данных (json-файлов)
-      - ./tg/data:/app/data
