@@ -16,4 +16,4 @@ COPY . .
 ENV PATH="/app/venv/bin:$PATH"
 
 # Команда запуска: как вы указали локально
-CMD ["python", "-m", "main"]
+CMD ["python", "-m", "telegram_bot"]
