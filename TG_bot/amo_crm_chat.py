@@ -15,10 +15,11 @@ channel_secret = os.environ.get('CHANNEL_SECRET')
 scope_id = os.environ.get('SCOPE_ID')
 base_url = os.environ.get('BASE_URL', 'https://amojo.amocrm.ru')
 
-if not channel_secret or not scope_id:
-    raise ValueError("CHANNEL_SECRET или SCOPE_ID не найдены в .env")
+DATA_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'Data'))
+CONVERSATIONS_FILE = os.path.join(DATA_DIR, 'conversations_map.json')
+USER_FILE = os.path.join(DATA_DIR, 'user_conversations.json')
 
-USER_FILE = 'user_conversations.json'  # {tg_user_id: conv_id}
+
 user_conversations = {}
 
 def load_users() -> dict:

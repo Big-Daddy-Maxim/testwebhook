@@ -15,7 +15,9 @@ SECRET = os.environ.get('CHANNEL_SECRET')
 CHANNEL_ID = os.environ.get('CHANNEL_ID')
 AMOJO_ID = os.environ.get('AMOJO_ID')
 TELEGRAM_BOT_TOKEN = os.environ.get('TELEGRAM_BOT_TOKEN')
-CONVERSATIONS_FILE = 'conversations_map.json'
+DATA_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'Data'))
+CONVERSATIONS_FILE = os.path.join(DATA_DIR, 'conversations_map.json')
+USER_FILE = os.path.join(DATA_DIR, 'user_conversations.json')
 
 app = Flask(__name__)
 

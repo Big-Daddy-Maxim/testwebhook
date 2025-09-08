@@ -2,6 +2,8 @@ services:
   amo_server:
     build: ./server/
     container_name: amo_server
+    volumes:
+      - ./Data:/Data
     ports:
       - "80:80"
     env_file:
@@ -10,6 +12,8 @@ services:
   telegram_bot:
     build: ./TG_bot/
     container_name: telegram_bot
+    volumes:
+      - ./Data:/Data
     depends_on: 
       - amo_server
     env_file:
