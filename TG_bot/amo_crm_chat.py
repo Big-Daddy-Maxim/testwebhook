@@ -109,7 +109,7 @@ async def find_or_create_chat(
             },
             'message': {
                 'type': 'text',
-                'text': welcome_text
+                'text': welcome_text,
             },
             'silent': False
         }
