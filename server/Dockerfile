@@ -12,7 +12,6 @@ RUN apt-get update \
 
 # 2. Устанавливаем зависимости (меняется только при изменении requirements.txt)
 RUN python -m venv /app/venv && \
-    /app/venv/bin/pip install --upgrade pip && \
     /app/venv/bin/pip install --no-cache-dir -r requirements.txt -q
 
 # 3. Копируем код (меняется часто)
@@ -21,4 +20,5 @@ COPY . .
 ENV PATH="/app/venv/bin:$PATH"
 
 # Команда запуска: как вы указали локально (authbind --deep python3 server.py)
-CMD ["authbind","--deep","python", "server"]
+CMD ["authbind","--deep","python","-m", "server"]
+

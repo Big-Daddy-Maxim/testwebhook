@@ -4,20 +4,13 @@ services:
     container_name: amo_server
     ports:
       - "80:80"
-    environment:  # Переменные из .env или вручную
-      - FLASK_ENV=production
-      - CHANNEL_SECRET=${CHANNEL_SECRET}
-      - SCOPE_ID=${SCOPE_ID}
-      - BASE_URL=${BASE_URL}
-      - CHANNEL_ID=${CHANNEL_ID}
-      - AMOJO_ID=${AMOJO_ID}
-      - TELEGRAM_BOT_TOKEN=${TELEGRAM_BOT_TOKEN}
-
+    env_file:
+      - .env  
 
   telegram_bot:
     build: ./TG_bot/
     container_name: telegram_bot
-    depends_on:
-      - amo_server  # Бот зависит от сервера
-    environment:
-      - TELEGRAM_BOT_TOKEN=${TELEGRAM_BOT_TOKEN}
+    depends_on: 
+      - amo_server
+    env_file:
+      - .env 
