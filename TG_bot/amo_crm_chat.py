@@ -115,30 +115,21 @@ async def find_or_create_chat(
         }
     }
     json_body = json.dumps(request_body)
+    logging.info(f"Создано тело запроса: {json_body}")
     api_method = f'/v2/origin/custom/{scope_id}'
     checksum = create_body_checksum(json_body)
     signature = create_signature(channel_secret, checksum, api_method)
     headers = prepare_headers(checksum, signature)
+    logging.info(f"Созданы заголовки: {headers}")
     url = base_url + api_method
 
     # Логирование перед POST
     logging.info(f"Отправка POST на {url} с телом: {json_body}")
 
     response = requests.post(url, data=json_body, headers=headers)
+    logging.info(f"Ответ от amoCRM (create chat): статус {response.status_code}, тело: {response.text}")
 
     if response.status_code == 200:
-        # Добавление нового объекта в список
-        new_user = {
-            'amocrm_id': amocrm_id,
-            'tg_id': tg_id,
-            'name': name,
-            'username': username,
-            'email': email,
-            'phone': phone,
-            'avatar': avatar
-        }
-        user_conversations.append(new_user)
-        save_users(user_conversations)
         return amocrm_id
     else:
         print(f"Ошибка создания чата: {response.status_code} {response.text}")

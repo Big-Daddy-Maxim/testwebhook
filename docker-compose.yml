@@ -4,6 +4,8 @@ services:
     container_name: amo_server
     volumes:
       - ./Data:/Data
+    networks:
+      - bot-network
     ports:
       - "80:80"
     env_file:
@@ -14,7 +16,13 @@ services:
     container_name: telegram_bot
     volumes:
       - ./Data:/Data
+    networks:
+      - bot-network
     depends_on: 
       - amo_server
     env_file:
       - .env 
+
+networks:
+  bot-network:
+    driver: bridge
