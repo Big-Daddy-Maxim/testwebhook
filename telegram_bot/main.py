@@ -10,8 +10,8 @@ import aiofiles
 from datetime import datetime
 
 # Импорт из amo_crm_chat
-from amo_crm_chat import find_or_create_chat, send_message_to_amocrm
 from user_db import *
+from main import create_chat_amo
 
 
 load_dotenv()
@@ -19,8 +19,6 @@ TELEGRAM_BOT_TOKEN = os.environ.get('TELEGRAM_BOT_TOKEN')
 DATA_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'Data'))
 USER_FILE = os.path.join(DATA_DIR, 'user_conversations.json')
 BASE_AVATAR_URL = os.environ.get('BASE_AVATAR_URL', 'https://flowsynk.ru')
-if not TELEGRAM_BOT_TOKEN:
-    raise ValueError("TELEGRAM_BOT_TOKEN не найден в .env! Создайте файл с переменными.")
 
 bot = Bot(token=TELEGRAM_BOT_TOKEN)
 storage = MemoryStorage()
@@ -82,7 +80,7 @@ async def process_user_message(message: types.Message ,welcome_text = None):
         else:
             user_text = welcome_text    
         
-        amocrm_id = await find_or_create_chat(
+        amocrm_id = await create_chat(
             tg_id, 
             name=name, 
             username=username, 
@@ -117,6 +115,6 @@ async def message_handler(message: types.Message):
 async def main():
     await dp.start_polling(bot)
 
+
 if __name__ == '__main__':
     asyncio.run(main())
-
