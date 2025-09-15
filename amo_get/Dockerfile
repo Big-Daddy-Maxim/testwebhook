@@ -20,5 +20,5 @@ COPY . .
 ENV PATH="/app/venv/bin:$PATH"
 
 # Команда запуска: как вы указали локально (authbind --deep python3 server.py)
-CMD ["authbind","--deep","python","-m", "server"]
+CMD ["authbind","--deep","python","-m", "main"]
 

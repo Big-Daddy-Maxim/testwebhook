@@ -1,20 +1,11 @@
 [
     {
-        "amocrm_id": "conv-1757357645",
+        "amocrm_id": "conv-1757953179",
         "tg_id": "1226674712",
-        "name": "\u041c\u0430\u043a\u0441\u0438\u043c \u0411\u0435\u043b\u044b\u0439",
+        "name": "Максим Белый",
         "username": "d_BiG_Daddy_b",
-        "email": "default@example.com",
-        "phone": "+79999999999",
-        "avatar": "https://example.com/avatar.png"
-    },
-    {
-        "amocrm_id": "conv-1757357657",
-        "tg_id": "1391336666",
-        "name": "PrettyDeadCat",
-        "username": "PrettyDeadCat",
-        "email": "default@example.com",
-        "phone": "+79999999999",
-        "avatar": "https://example.com/avatar.png"
+        "avatar": "result20250915161939.jpg",
+        "email": null,
+        "phone": null
     }
 ]

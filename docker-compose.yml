@@ -1,28 +1,95 @@
+
+
+# Шаблоны labels
+x-traefik-labels: &traefik-labels
+  - "traefik.enable=true"
+
+x-service-template: &service-template
+  networks:
+    - microservices
+  labels:
+    - *traefik-labels
+
+
 services:
-  amo_server:
-    build: ./server/
-    container_name: amo_server
-    volumes:
-      - ./Data:/Data
-    networks:
-      - bot-network
+  traefik:
+    image: traefik:v3.0
+    command:
+      - "--providers.docker=true"
+      - "--providers.docker.exposedbydefault=false"
+      - "--entrypoints.web.address=:80"
+      - "--api.dashboard=true"
+      - "--api.insecure=true"
     ports:
       - "80:80"
+      - "8080:8080"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    networks:
+      - microservices
+    
+  
+  amo_send:
+    build: ./amo_send/
+    container_name: amo_send
+    volumes:
+      - ./Data:/Data
+    <<: *service-template
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.send_amo.rule=PathPrefix(`/api/send_amo`)"
+      - "traefik.http.services.send_amo.loadbalancer.server.port=8000"
+      - "traefik.http.middlewares.send_amo-strip.stripprefix.prefixes=/api/send_amo"
+      - "traefik.http.routers.send_amo.middlewares=send_amo-strip"
     env_file:
       - .env  
 
   telegram_bot:
-    build: ./TG_bot/
+    build: ./telegram_bot/
     container_name: telegram_bot
     volumes:
       - ./Data:/Data
-    networks:
-      - bot-network
-    depends_on: 
-      - amo_server
+    <<: *service-template
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.bot_telegram.rule=PathPrefix(`/api/bot_telegram`)"
+      - "traefik.http.services.bot_telegram.loadbalancer.server.port=8000"
+      - "traefik.http.middlewares.bot_telegram-strip.stripprefix.prefixes=/api/bot_telegram"
+      - "traefik.http.routers.bot_telegram.middlewares=bot_telegram-strip"
     env_file:
       - .env 
 
+
+
+  amo_get:
+    build: ./amo_get/
+    container_name: amo_get
+    volumes:
+      - ./Data:/Data
+    <<: *service-template
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.get_amo.rule=PathPrefix(`/api/get_amo`)"
+      - "traefik.http.services.get_amo.loadbalancer.server.port=8000"
+      - "traefik.http.middlewares.get_amo-strip.stripprefix.prefixes=/api/get_amo"
+      - "traefik.http.routers.get_amo.middlewares=get_amo-strip"
+    env_file:
+      - .env
+
+  bd_connector:
+    build: ./bd_connector/
+    container_name: bd_connector
+    volumes:
+      - ./Data:/Data
+    <<: *service-template
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.bd_connect.rule=PathPrefix(`/api/bd_connect`)"
+      - "traefik.http.services.bd_connect.loadbalancer.server.port=8000"
+      - "traefik.http.middlewares.bd_connect-strip.stripprefix.prefixes=/api/bd_connect"
+      - "traefik.http.routers.bd_connect.middlewares=bd_connect-strip"
+    env_file:
+      - .env
+
 networks:
-  bot-network:
-    driver: bridge
+  microservices:
