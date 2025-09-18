@@ -5,11 +5,16 @@ import os
 import json
 import logging
 import aiohttp
+import requests
 from datetime import datetime
+from fastapi import FastAPI, Body
+import uvicorn
 
 from aiogram import Bot, Dispatcher, types
 from aiogram.filters import Command
 from aiogram.fsm.storage.memory import MemoryStorage
+from aiogram.client.default import DefaultBotProperties  # Для дефолтного parse_mode
+from aiogram.enums import ParseMode
 from dotenv import load_dotenv
 
 # Импорт из общего модуля bd_connector
@@ -27,10 +32,16 @@ TELEGRAM_BOT_TOKEN = os.environ.get('TELEGRAM_BOT_TOKEN')
 BASE_AVATAR_URL = os.environ.get('BASE_AVATAR_URL', 'https://flowsynk.ru')
 AMO_SEND_URL = "http://amo_send:8000"  # URL внутреннего сервиса amo_send
 
-bot = Bot(token=TELEGRAM_BOT_TOKEN)
+# Инициализация бота с дефолтным parse_mode (исправление для aiogram 3.7+)
+bot = Bot(
+    token=TELEGRAM_BOT_TOKEN,
+    default=DefaultBotProperties(parse_mode=ParseMode.HTML)  # Дефолтный parse_mode
+)
 storage = MemoryStorage()
 dp = Dispatcher(storage=storage)
 
+# --- FastAPI-приложение (для /send_to_tg) ---
+app = FastAPI()
 
 async def download_user_avatar(bot: Bot, user_id: int):
     """Загружает аватар и возвращает его имя файла."""
@@ -145,6 +156,25 @@ async def process_user_message(message: types.Message, welcome_text=None):
         # Здесь будет вызов функции отправки сообщения в amo_send
         await send_message_to_amocrm(amocrm_id, tg_id, message.text)
 
+#-------Эндпоинт для принятия payload и отправления сообщение в Telegram-------
+@app.post("/send_to_tg")
+async def send_to_tg(payload: dict = Body(...)):
+    tg_id = payload.get("tg_id")
+    text = payload.get("text")
+    if not tg_id or not text:
+        logging.error("Invalid payload: missing tg_id or text")
+        return {"success": False}
+
+    # Отправка в Telegram (используйте aiogram или requests)
+    telegram_url = f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/sendMessage"
+    resp = requests.post(telegram_url, json={"chat_id": tg_id, "text": text})
+    
+    if resp.status_code == 200:
+        logging.info(f"Message sent to {tg_id}: {text}")
+        return {"success": True}
+    else:
+        logging.error(f"Telegram error: {resp.text}")
+        return {"success": False}
 
 @dp.message(Command('start'))
 async def start_handler(message: types.Message):
@@ -155,9 +185,14 @@ async def message_handler(message: types.Message):
     await process_user_message(message)
 
 async def main():
+    # Запускаем FastAPI в фоне (отдельный task)
+    config = uvicorn.Config(app, host="0.0.0.0", port=8000, log_level="info")
+    server = uvicorn.Server(config)
+    asyncio.create_task(server.serve())
+    
+    # Основной polling aiogram
     await dp.start_polling(bot)
 
 if __name__ == '__main__':
     logging.info("Запуск Telegram-бота...")
     asyncio.run(main())
-
