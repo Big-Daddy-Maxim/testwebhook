@@ -69,10 +69,8 @@ services:
     <<: *service-template
     labels:
       - "traefik.enable=true"
-      - "traefik.http.routers.get_amo.rule=PathPrefix(`/api/get_amo`)"
+      - "traefik.http.routers.get_amo.rule=PathPrefix(`/webhook`)"
       - "traefik.http.services.get_amo.loadbalancer.server.port=8000"
-      - "traefik.http.middlewares.get_amo-strip.stripprefix.prefixes=/api/get_amo"
-      - "traefik.http.routers.get_amo.middlewares=get_amo-strip"
     env_file:
       - .env
 
