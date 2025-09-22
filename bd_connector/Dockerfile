@@ -2,18 +2,15 @@ FROM python:3.9-slim
 
 WORKDIR /app
 
-# 1. Копируем requirements.txt (меняется редко)
+# Копируем requirements.txt и устанавливаем зависимости (добавьте aio_pika в requirements.txt)
 COPY requirements.txt .
-
-# 2. Устанавливаем зависимости (меняется только при изменении requirements.txt)
 RUN python -m venv /app/venv && \
     /app/venv/bin/pip install --no-cache-dir -r requirements.txt -q
 
-# 3. Копируем код (меняется часто)
+# Копируем код
 COPY . .
 
 ENV PATH="/app/venv/bin:$PATH"
 
-# Команда запуска: как вы указали локально (authbind --deep python3 server.py)
-CMD ["python","-m", "main"]
-
+# Запуск user_db.py как основной процесс (потребитель RabbitMQ)
+CMD ["python", "user_db.py"]
