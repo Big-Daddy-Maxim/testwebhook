@@ -1,4 +1,4 @@
-# Шаблоны labels
+# шаблон labels
 x-traefik-labels: &traefik-labels
   - "traefik.enable=true"
 
